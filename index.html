@@ -1,43 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Basket Rivals 🏀</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="game-wrapper">
+  <div id="start-screen">
     <h1 class="title">🏀 Basket Rivals</h1>
-
-    <!-- Start Screen -->
-    <div id="start-screen" class="overlay">
-      <div class="overlay-content">
-        <h2>Welcome to Basket Rivals!</h2>
-        <p>Face off against the AI in a 1v1 cartoon basketball duel.</p>
-        <button id="start-btn">Start Game</button>
-      </div>
-    </div>
-
-    <!-- Canvas -->
-    <canvas id="game" width="960" height="540"></canvas>
-
-    <!-- Instructions -->
+    <button id="start-btn">Start Game</button>
     <div class="instructions">
       <h3>🎮 Controls</h3>
       <p>
-        ← / → : Move<br />
-        ↑ : Jump<br />
-        ↓ (with ball): Pump fake<br />
-        X : Shoot / Steal<br />
-        Double-tap ← or → : Dodge
+        ← / → : Move<br>
+        ↑ : Jump<br>
+        ↓ (with ball): Pump fake<br>
+        X : Shoot / Steal<br>
+        Double-tap ← or → : Dodge<br>
       </p>
       <p>Game lasts 1:30 — Score higher than AI to win!</p>
     </div>
+  </div>
 
-    <footer>
-      <p>© 2025 Basket Rivals — A fun mini basketball duel</p>
-    </footer>
+  <div id="game-container" style="display:none;">
+    <div id="scoreboard">
+      <span id="player-score">You: 0</span>
+      <span id="timer">01:30</span>
+      <span id="ai-score">AI: 0</span>
+    </div>
+    <canvas id="game" width="960" height="540"></canvas>
+  </div>
+
+  <div id="end-screen" style="display:none;">
+    <h1 id="result"></h1>
+    <button id="restart-btn">Play Again</button>
   </div>
 
   <script src="game.js"></script>
