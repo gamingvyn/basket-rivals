@@ -1,18 +1,28 @@
 // ======================
-// Basket Rivals - game.js (Final version)
+// Basket Rivals - game.js (with Start Screen)
 // ======================
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
+// --- Game state ---
+let started = false;
+const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
+startBtn.addEventListener('click', () => {
+  startScreen.classList.add('hidden');
+  started = true;
+  playSound(sounds.whistle);
+});
+
+// --- Core constants ---
 const GRAV = 0.9;
 const FLOOR_Y = H - 70;
 const RIM_RADIUS = 36;
 const LEFT_HOOP_X = 120;
 const RIGHT_HOOP_X = W - 120;
 const HOOP_Y = FLOOR_Y - 200;
-const THREE_PT_RADIUS = 220;
 
 let keys = {};
 window.addEventListener('keydown', e => { keys[e.key] = true; });
@@ -32,12 +42,11 @@ const sounds = {
   buzzer: new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg")
 };
 
-// utility to safely play sounds (in Chrome user interaction rules)
 function playSound(snd) {
   try { snd.currentTime = 0; snd.play(); } catch (e) { }
 }
 
-// ---------- Helpers ----------
+// --- Utility ---
 function clamp(a, b, c) { return Math.max(b, Math.min(c, a)); }
 function dist(a, b, c, d) { return Math.hypot(a - c, b - d); }
 function rand(a, b) { return a + Math.random() * (b - a); }
@@ -50,7 +59,6 @@ class Ball {
     this.r = 10;
     this.holder = null;
     this._scored = false;
-    this._lastTouchedBy = null;
   }
   update() {
     if (this.holder) {
@@ -64,7 +72,6 @@ class Ball {
     if (this.y + this.r > FLOOR_Y) {
       this.y = FLOOR_Y - this.r;
       this.vy *= -0.45;
-      this.vx *= 0.95;
       playSound(sounds.bounce);
     }
     if (this.x - this.r < 0) { this.x = this.r; this.vx *= -0.5; }
@@ -91,14 +98,10 @@ class Player {
     this.facingRight = true;
     this.onGround = true;
     this.hasBall = false;
-    this.fakeTimer = 0;
-    this.dodgeCooldown = 0;
     this.jumpCooldown = 0;
     this.stealCooldown = 0;
   }
   update(input) {
-    this.fakeTimer = Math.max(0, this.fakeTimer - 0.016);
-    this.dodgeCooldown = Math.max(0, this.dodgeCooldown - 0.016);
     this.jumpCooldown = Math.max(0, this.jumpCooldown - 0.016);
     this.stealCooldown = Math.max(0, this.stealCooldown - 0.016);
 
@@ -130,22 +133,17 @@ class Player {
     ctx.arc(0, -this.h / 2 - 15, 14, 0, Math.PI * 2);
     ctx.fillStyle = '#ffe0b3';
     ctx.fill();
-    if (this.hasBall) {
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 12px Arial';
-      ctx.fillText('●', 0, -5);
-    }
     ctx.restore();
   }
 }
 
-// ---------- Game setup ----------
+// --- Setup ---
 let player = new Player(180, '#ffb84d');
 let ai = new Player(W - 180, '#65d6ff');
 let ball = new Ball(W / 2, FLOOR_Y - 160);
 let score = { player: 0, ai: 0 };
 
-// ---------- Core mechanics ----------
+// --- Functions ---
 function tryJump(pl) {
   if (pl.jumpCooldown <= 0 && pl.onGround) {
     pl.vy = -14;
@@ -167,7 +165,6 @@ function shootBall(pl) {
   const ang = Math.atan2(dy, dx);
   ball.vx = Math.cos(ang) * power;
   ball.vy = Math.sin(ang) * power;
-  ball._lastTouchedBy = pl;
 }
 
 function tryPickup(pl) {
@@ -207,14 +204,13 @@ function checkScore() {
 
 function resetRound() {
   player.x = 180; ai.x = W - 180;
-  player.y = ai.y = FLOOR_Y - 27;
   player.hasBall = false; ai.hasBall = false;
   ball.x = W / 2; ball.y = FLOOR_Y - 150;
   ball.vx = ball.vy = 0; ball.holder = null;
   ball._scored = false;
 }
 
-// ---------- AI logic ----------
+// --- AI ---
 function updateAI() {
   if (!ai.hasBall && !ball.holder) {
     if (ball.x < ai.x) ai.x -= 3;
@@ -228,7 +224,7 @@ function updateAI() {
   }
 }
 
-// ---------- Drawing ----------
+// --- Draw ---
 function drawCourt() {
   ctx.fillStyle = '#2b733c';
   ctx.fillRect(0, FLOOR_Y, W, H - FLOOR_Y);
@@ -255,37 +251,12 @@ function drawHUD() {
   ctx.fillText(`AI: ${score.ai}`, W - 120, 30);
 }
 
-function drawEndScreen() {
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 36px Arial';
-  ctx.textAlign = 'center';
-  let msg = score.player > score.ai ? '🏆 YOU WIN!' : score.ai > score.player ? 'AI WINS 😢' : 'DRAW!';
-  ctx.fillText(msg, W / 2, H / 2 - 40);
-  ctx.font = '28px Arial';
-  ctx.fillText(`Final Score — You: ${score.player} | AI: ${score.ai}`, W / 2, H / 2 + 10);
-  ctx.font = '20px Arial';
-  ctx.fillText('Press R to Restart', W / 2, H / 2 + 60);
-}
-
-window.addEventListener('keydown', e => {
-  if (gameEnded && e.key.toLowerCase() === 'r') {
-    score = { player: 0, ai: 0 };
-    gameTime = 90;
-    gameEnded = false;
-    resetRound();
-    playSound(sounds.whistle);
-  }
-});
-
-// ---------- Main loop ----------
+// --- Loop ---
 function update(dt) {
-  if (gameEnded) return;
+  if (!started || gameEnded) return;
 
   const input = { left: keys['ArrowLeft'], right: keys['ArrowRight'] };
   if (keys['ArrowUp']) tryJump(player);
-  if (keys['ArrowDown'] && player.hasBall) player.fakeTimer = 0.4;
   if (keys['x'] || keys['X']) {
     if (player.hasBall) shootBall(player);
     else trySteal(player, ai);
@@ -311,7 +282,6 @@ function render() {
   player.draw();
   ai.draw();
   drawHUD();
-  if (gameEnded) drawEndScreen();
 }
 
 function loop(ts) {
